@@ -41,6 +41,7 @@
     "@jupyterlab/docregistry": "^0.18.0",
     "@jupyterlab/launcher": "^0.18.0",
     "@jupyterlab/mainmenu": "^0.7.0",
+    "@jupyterlab/notebook": "^0.18.5",
     "@jupyterlab/rendermime-interfaces": "^1.1.3",
     "@phosphor/coreutils": "^1.3.0",
     "@phosphor/datagrid": "^0.1.5",

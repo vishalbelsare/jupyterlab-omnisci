@@ -10,13 +10,15 @@ import { IEditorServices } from '@jupyterlab/codeeditor';
 
 import { ICompletionManager } from '@jupyterlab/completer';
 
-import { ISettingRegistry } from '@jupyterlab/coreutils';
+import { ISettingRegistry, IStateDB } from '@jupyterlab/coreutils';
 
 import { DocumentRegistry } from '@jupyterlab/docregistry';
 
 import { ILauncher } from '@jupyterlab/launcher';
 
 import { IMainMenu } from '@jupyterlab/mainmenu';
+
+import { NotebookModel } from '@jupyterlab/notebook';
 
 import { IMapDConnectionData, MapDCompletionConnector } from './connection';
 
@@ -83,7 +85,8 @@ const mapdPlugin: JupyterLabPlugin<void> = {
     ILauncher,
     ILayoutRestorer,
     IMainMenu,
-    ISettingRegistry
+    ISettingRegistry,
+    IStateDB
   ],
   autoStart: true
 };
@@ -95,7 +98,8 @@ function activateMapDViewer(
   launcher: ILauncher,
   restorer: ILayoutRestorer,
   mainMenu: IMainMenu,
-  settingRegistry: ISettingRegistry
+  settingRegistry: ISettingRegistry,
+  state: IStateDB
 ): void {
   const viewerNamespace = 'mapd-viewer-widget';
   const gridNamespace = 'mapd-grid-widget';
@@ -252,6 +256,27 @@ function activateMapDViewer(
     .catch((reason: Error) => {
       console.error(reason.message);
     });
+
+  // Fetch the state, which is used to determine whether to create
+  // an initial populated notebook.
+  Promise.all([state.fetch(PLUGIN_ID), app.restored]).then(async ([result]) => {
+    // const initial = !!(result as { initialNotebook: boolean }).initialNotebook;
+    const initial = true;
+    state.save(PLUGIN_ID, { initialNotebook: false });
+    if (initial) {
+      const notebook = await app.commands.execute('notebook:create-new', {
+        kernelName: 'python3'
+      });
+      await notebook.context.ready;
+      const injectCode = (sender: NotebookModel) => {
+        if (notebook.content.model.cells.length === 1) {
+          notebook.content.model.cells.get(0).value.text = 'Hello, world';
+          notebook.content.model.contentChanged.disconnect(injectCode);
+        }
+      };
+      notebook.content.model.contentChanged.connect(injectCode);
+    }
+  });
 }
 
 /**
